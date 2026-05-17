@@ -104,6 +104,7 @@ export default function Game() {
   const P  = useRef(pair);
   const NC = useRef(nextColors);
   const PH = useRef(phase);
+  const holdRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { G.current  = grid;       }, [grid]);
   useEffect(() => { P.current  = pair;       }, [pair]);
@@ -185,6 +186,15 @@ export default function Game() {
     }
   }, [lock]);
 
+  const startHold = useCallback((action: () => void) => {
+    action();
+    holdRef.current = setInterval(action, 120);
+  }, []);
+
+  const endHold = useCallback(() => {
+    if (holdRef.current) { clearInterval(holdRef.current); holdRef.current = null; }
+  }, []);
+
   const togglePause = useCallback(() => {
     if (PH.current === 'playing') {
       setPhase('paused'); PH.current = 'paused';
@@ -261,7 +271,7 @@ export default function Game() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <main className="min-h-screen flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4 relative overflow-y-auto sm:overflow-hidden gap-2 sm:gap-0">
       <div className="bg-gradient" />
       <div className="mesh-gradient" />
 
@@ -272,8 +282,20 @@ export default function Game() {
         </div>
       )}
 
+      {/* Mobile top HUD */}
+      <div className="flex sm:hidden w-full max-w-xs justify-between gap-2 pt-1">
+        <div className="glass px-4 py-2 flex flex-col items-center flex-1">
+          <span className="hud-label text-blue-400">Score</span>
+          <span className="text-lg font-black text-white">{score.toLocaleString()}</span>
+        </div>
+        <div className="glass px-4 py-2 flex flex-col items-center flex-1">
+          <span className="hud-label text-purple-400">Best Chain</span>
+          <span className="text-lg font-black text-white">{bestChain}</span>
+        </div>
+      </div>
+
       {/* Left HUD */}
-      <div className="absolute left-8 top-1/2 -translate-y-1/2 flex flex-col gap-6 w-44">
+      <div className="hidden sm:flex absolute left-8 top-1/2 -translate-y-1/2 flex-col gap-6 w-44">
         <div className="glass p-5 flex flex-col items-center">
           <span className="hud-label text-blue-400">Score</span>
           <span className="hud-value">{score.toLocaleString()}</span>
@@ -325,8 +347,62 @@ export default function Game() {
         </div>
       </div>
 
+      {/* Mobile bottom section */}
+      <div className="flex sm:hidden flex-col items-center gap-3 w-full max-w-xs pb-2">
+        <div className="flex items-center justify-between w-full">
+          <div className="glass px-4 py-2 flex items-center gap-3">
+            <span className="hud-label text-green-400">Next</span>
+            <div className={`w-8 h-8 rounded-full ${PUYO_STYLE[nextColors[1]]} shadow-lg`} />
+            <div className={`w-8 h-8 rounded-full ${PUYO_STYLE[nextColors[0]]} shadow-lg`} />
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {(phase === 'playing' || phase === 'paused') && (
+              <button onClick={togglePause} className="glass px-4 py-2 text-sm font-bold text-white/70 hover:text-white rounded-xl tracking-widest uppercase">
+                {phase === 'paused' ? '▶ RESUME' : '⏸ PAUSE'}
+              </button>
+            )}
+            {phase === 'idle' && (
+              <button onClick={startGame} className="glass px-4 py-2 text-sm font-bold text-white rounded-xl tracking-widest uppercase">
+                START
+              </button>
+            )}
+            {phase === 'gameover' && (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-red-400 font-bold text-sm">GAME OVER</span>
+                <button onClick={startGame} className="text-sm font-bold text-white hover:text-yellow-400">RETRY</button>
+              </div>
+            )}
+          </div>
+        </div>
+        {(phase === 'playing' || phase === 'paused') && (
+          <div className="flex flex-col items-center gap-2 w-full">
+            <div className="flex gap-3 justify-center">
+              <button className="touch-btn"
+                onPointerDown={(e) => { e.preventDefault(); startHold(() => moveH(-1)); }}
+                onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}>
+                ←
+              </button>
+              <button className="touch-btn px-5"
+                onPointerDown={(e) => { e.preventDefault(); rot(); }}>
+                ↑ ROT
+              </button>
+              <button className="touch-btn"
+                onPointerDown={(e) => { e.preventDefault(); startHold(() => moveH(1)); }}
+                onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}>
+                →
+              </button>
+            </div>
+            <button className="touch-btn w-32"
+              onPointerDown={(e) => { e.preventDefault(); startHold(drop); }}
+              onPointerUp={endHold} onPointerLeave={endHold} onPointerCancel={endHold}>
+              ↓ DROP
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Right HUD */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-6 w-44">
+      <div className="hidden sm:flex absolute right-8 top-1/2 -translate-y-1/2 flex-col gap-6 w-44">
         <div className="glass p-5 flex flex-col items-center">
           <span className="hud-label text-green-400 mb-4">Next</span>
           <div className="flex flex-col gap-2 items-center">
@@ -368,7 +444,7 @@ export default function Game() {
       </div>
 
       {/* Controls Guide */}
-      <div className="absolute bottom-6 glass px-6 py-3 flex gap-6 text-xs font-bold text-white/50 tracking-widest uppercase">
+      <div className="hidden sm:flex absolute bottom-6 glass px-6 py-3 gap-6 text-xs font-bold text-white/50 tracking-widest uppercase">
         <span><span className="key">↑</span> Rotate</span>
         <span><span className="key">←→</span> Move</span>
         <span><span className="key">↓</span> Fast Drop</span>

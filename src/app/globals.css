@@ -79,6 +79,41 @@ body {
   border: 1px solid var(--glass-border);
 }
 
+@media (max-width: 639px) {
+  .game-grid {
+    width: 252px;
+    height: 504px;
+    gap: 2px;
+    padding: 6px;
+  }
+}
+
+/* --- Touch control buttons (mobile) --- */
+.touch-btn {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0.75rem 1.1rem;
+  min-width: 3.5rem;
+  min-height: 3rem;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.touch-btn:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 /* --- Puyo cells --- */
 .puyo-cell {
   width: 100%;
